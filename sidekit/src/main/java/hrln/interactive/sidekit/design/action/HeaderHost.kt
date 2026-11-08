@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -41,6 +42,14 @@ private class HeaderModel {
         val newScreen = top !== owner
         owner = top
         current = spec
+        // A screen without the shared title draws its own header in that place (the launcher's
+        // clock): the old title goes at once, as fading it there would draw it over that header.
+        if (spec == null) {
+            job?.cancel()
+            previous = null
+            progress = 1f
+            return
+        }
         // A screen updating its own title (the clock ticking, a note saved) changes in place; only a
         // new screen plays the swap.
         if (newScreen && old?.title != spec?.title && (old != null || spec != null)) {
@@ -48,7 +57,7 @@ private class HeaderModel {
             progress = 0f
             job?.cancel()
             job = scope.launch {
-                animate(0f, 1f, animationSpec = SidekitMotion.content) { v, _ -> progress = v }
+                animate(0f, 1f, animationSpec = SidekitMotion.title) { v, _ -> progress = v }
                 previous = null
             }
         }
@@ -56,8 +65,9 @@ private class HeaderModel {
 }
 
 /**
- * The shared screen title. On navigation the old title lifts and fades while the new one rises
- * into place: both are single text layers moved in the draw phase, measured once.
+ * The shared screen title. On navigation the old title fades out and the new one fades in, both
+ * in the same fixed place: the title is the screen's anchor, so it never moves. Both are single
+ * text layers faded in the draw phase, measured once.
  */
 @Composable
 internal fun HeaderHost(state: ChromeState, modifier: Modifier = Modifier) {
@@ -66,6 +76,11 @@ internal fun HeaderHost(state: ChromeState, modifier: Modifier = Modifier) {
     val top = state.top
     val spec = top?.header
     SideEffect { if (top != null) model.sync(top, spec, scope) }
+    // Publishers notify in the frame a screen changes, so the title never trails the body by a frame.
+    DisposableEffect(state, model) {
+        state.onHeaderChange = { state.top?.let { model.sync(it, it.header, scope) } }
+        onDispose { state.onHeaderChange = null }
+    }
 
     val travel = with(LocalDensity.current) { TITLE_TRAVEL.toPx() }
     val current = model.current
@@ -98,7 +113,8 @@ internal fun HeaderHost(state: ChromeState, modifier: Modifier = Modifier) {
                 textAlign = current.align,
                 modifier = Modifier.graphicsLayer {
                     val p = progress()
-                    alpha = ((p - HANDOFF) / (1f - HANDOFF)).coerceIn(0f, 1f)
+                    // Composition hasn't caught up with a screen that has no shared title: hide it now.
+                    alpha = if (model.current == null) 0f else ((p - HANDOFF) / (1f - HANDOFF)).coerceIn(0f, 1f)
                     translationY = (1f - p) * travel
                     compositingStrategy = CompositingStrategy.ModulateAlpha
                 },
@@ -107,7 +123,8 @@ internal fun HeaderHost(state: ChromeState, modifier: Modifier = Modifier) {
     }
 }
 
-private val TITLE_TRAVEL = 28.dp
+/** How far the titles slide during a swap: none, so the title keeps a fixed position. */
+private val TITLE_TRAVEL = 0.dp
 
 /** Fraction of the swap spent fading the old title out before the new one starts fading in. */
 private const val HANDOFF = 0.35f
