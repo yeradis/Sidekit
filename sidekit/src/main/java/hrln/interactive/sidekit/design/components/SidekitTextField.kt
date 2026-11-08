@@ -132,8 +132,8 @@ fun SidekitTextField(
                 engine = keypad.engine,
                 session = session,
                 dictation = dictation,
-                // With a screen's own trailing button there's no room for Done's label: the bar
-                // becomes four equal buttons, like the home dock.
+                // With a screen's own (square) trailing button there's no room for Done's label:
+                // the other three share the rest of the bar equally, like the home dock.
                 compact = trailingTypingAction != null,
                 onDictate = {
                     when {
@@ -298,7 +298,7 @@ private fun t9Actions(engine: T9Engine, session: T9Session, dictation: Dictation
             "t9.1",
             icon = if (dictation.listening) SidekitIcon.MicOff else SidekitIcon.Mic,
             tone = if (dictation.listening) ActionTone.Primary else ActionTone.Muted,
-            // Crowded, every button takes an equal share, like the home dock.
+            // Crowded, the bar's buttons take equal shares, like the home dock.
             square = !compact,
             motion = ActionMotion.Up,
             contentDescription = if (dictation.listening) "Stop dictating" else "Dictate",

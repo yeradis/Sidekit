@@ -167,8 +167,6 @@ fun LauncherScreen(
     // that made it focusable has been composed, not from the key event that started the search.
     LaunchedEffect(searching) { if (searching) runCatching { searchFocus.requestFocus() } }
     val clear = SideAction.square("search.clear", SidekitIcon.Close, "Clear app search", ::clearSearch)
-    // While typing it shares the bar equally with the other three buttons, like the dock.
-    val clearWhileTyping = SideAction("search.clear", icon = SidekitIcon.Close, contentDescription = "Clear app search", onClick = ::clearSearch)
     val entries = home.ifEmpty { defaultHome() }
     val visible = entries.filter { it.id !in hiddenApps && it.label.contains(text, ignoreCase = true) }
     BackHandler { clearSearch() }
@@ -196,7 +194,7 @@ fun LauncherScreen(
                     focusOnKeypad = true,
                     onKeypadFocus = { searching = true },
                     singleLine = true,
-                    trailingTypingAction = clearWhileTyping,
+                    trailingTypingAction = clear,
                     onDone = { focusManager.clearFocus() },
                 )
                 if (!searching && text.isEmpty()) {
