@@ -23,6 +23,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -36,7 +37,8 @@ import hrln.interactive.sidekit.design.theme.SidekitTheme
 
 /**
  * Header frame (62:898): 460 x 103, title inset 30/30. Drawn by the shared title host; screens
- * use it directly only for a custom header.
+ * use it directly only for a custom header. The spacing token `headerPaddingTop` shortens it
+ * (with `headerHeight`) in compact mode.
  */
 @Composable
 fun SidekitHeader(
@@ -49,7 +51,7 @@ fun SidekitHeader(
             .fillMaxWidth()
             .height(SidekitTheme.spacing.headerHeight)
             .padding(horizontal = SidekitTheme.spacing.itemPadding)
-            .padding(top = SidekitTheme.spacing.itemPadding),
+            .padding(top = SidekitTheme.spacing.headerPaddingTop),
     ) {
         SidekitText(
             text = title,
@@ -131,7 +133,7 @@ fun SidekitScaffold(
                     Modifier
                         .focusProperties { onEnter = { if (requestedFocusDirection != FocusDirection.Enter) cancelFocusChange() } }
                         .focusGroup(),
-                ) { Box(Modifier.focusRequester(focusParking).focusable()) }
+                ) { Box(Modifier.focusRequester(focusParking).focusable().clearAndSetSemantics {}) }
                 CompositionLocalProvider(LocalBodyEntrance provides entrance) {
                     content(PaddingValues(bottom = bottom))
                 }
